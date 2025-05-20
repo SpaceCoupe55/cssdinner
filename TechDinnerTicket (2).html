@@ -1,0 +1,228 @@
+<script type="text/javascript">
+  var gk_isXlsx = false;
+  var gk_xlsxFileLookup = {};
+  var gk_fileData = {};
+  function filledCell(cell) {
+    return cell !== '' && cell != null;
+  }
+  function loadFileData(filename) {
+    if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+      try {
+        var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+        var firstSheetName = workbook.SheetNames[0];
+        var worksheet = workbook.Sheets[firstSheetName];
+
+        // Convert sheet to JSON to filter blank rows
+        var jsonData = XLSX.utils.sheet_to_json(worksheet, {
+          header: 1,
+          blankrows: false,
+          defval: '',
+        });
+        // Filter out blank rows (rows where all cells are empty, null, or undefined)
+        var filteredData = jsonData.filter((row) => row.some(filledCell));
+
+        // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+        var headerRowIndex = filteredData.findIndex(
+          (row, index) =>
+            row.filter(filledCell).length >=
+            filteredData[index + 1]?.filter(filledCell).length
+        );
+        // Fallback
+        if (headerRowIndex === -1 || headerRowIndex > 25) {
+          headerRowIndex = 0;
+        }
+
+        // Convert filtered JSON back to CSV
+        var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+        csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+        return csv;
+      } catch (e) {
+        console.error(e);
+        return '';
+      }
+    }
+    return gk_fileData[filename] || '';
+  }
+</script>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0" />
+    <title>Tech Dinner Ticket</title>
+    <style>
+      body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        background: linear-gradient(135deg, #0d1b2a, #1b263b);
+        font-family: 'Courier New', monospace;
+        margin: 0;
+        overflow: hidden;
+      }
+
+      .ticket {
+        width: 350px;
+        height: 500px;
+        background: #ffffff;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        overflow: hidden;
+        position: relative;
+        border: 2px solid #00ddeb;
+        animation: glow 2s ease-in-out infinite alternate,
+          float 4s ease-in-out infinite;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+      }
+
+      .ticket:hover {
+        transform: scale(1.05);
+        box-shadow: 0 0 30px #00ddeb, 0 0 50px #00ddeb;
+      }
+
+      @keyframes glow {
+        from {
+          box-shadow: 0 0 10px #00ddeb, 0 0 20px #00ddeb;
+        }
+        to {
+          box-shadow: 0 0 20px #00ddeb, 0 0 30px #00ddeb;
+        }
+      }
+
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-10px);
+        }
+      }
+
+      .ticket-header {
+        background: #1b263b;
+        color: #00ddeb;
+        text-align: center;
+        padding: 20px;
+        border-bottom: 2px dashed #00ddeb;
+      }
+
+      .ticket-header h1 {
+        margin: 0;
+        font-size: 24px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+      }
+
+      .ticket-body {
+        padding: 20px;
+        text-align: center;
+        position: relative;
+        z-index: 1;
+      }
+
+      .ticket-body p {
+        margin: 10px 0;
+        color: #1b263b;
+        font-size: 16px;
+      }
+
+      .ticket-code {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 221, 235, 0.1);
+        color: #00ddeb;
+        font-size: 12px;
+        line-height: 1.5;
+        padding: 10px;
+        opacity: 0.3;
+        pointer-events: none;
+        overflow: hidden;
+        white-space: pre-wrap;
+        z-index: 0;
+        animation: scrollCode 20s linear infinite;
+      }
+
+      @keyframes scrollCode {
+        0% {
+          transform: translateY(100%);
+        }
+        100% {
+          transform: translateY(-100%);
+        }
+      }
+
+      .ticket-footer {
+        position: absolute;
+        bottom: 0;
+        width: 100%;
+        background: #1b263b;
+        color: #ffffff;
+        text-align: center;
+        padding: 10px;
+        font-size: 14px;
+      }
+
+      .qr-code {
+        width: 100px;
+        height: 100px;
+        background: #000;
+        margin: 10px auto;
+        border: 2px solid #00ddeb;
+      }
+
+      .barcode {
+        width: 80%;
+        height: 40px;
+        background: repeating-linear-gradient(
+          90deg,
+          #000 0,
+          #000 2px,
+          #fff 2px,
+          #fff 4px
+        );
+        margin: 10px auto;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="ticket">
+      <div class="ticket-header">
+        <h1>CSS Dinner 2025</h1>
+      </div>
+      <div class="ticket-body">
+        <p><strong>Date:</strong> Coming Soon</p>
+        <p><strong>Time:</strong> 7:00 PM</p>
+        <p><strong>Venue:</strong> Coming Soon</p>
+        <p><strong>Seat:</strong> A</p>
+        <div class="qr-code"></div>
+        <div class="barcode"></div>
+      </div>
+      <div class="ticket-code">
+        .ticket { width: 350px; height: 500px; background: #ffffff;
+        border-radius: 15px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); border:
+        2px solid #00ddeb; animation: glow 2s ease-in-out infinite alternate,
+        float 4s ease-in-out infinite; transition: transform 0.3s ease,
+        box-shadow 0.3s ease; } .ticket:hover { transform: scale(1.05);
+        box-shadow: 0 0 30px #00ddeb, 0 0 50px #00ddeb; } @keyframes float { 0%,
+        100% { transform: translateY(0); } 50% { transform: translateY(-10px); }
+        } .ticket-code { position: absolute; top: 0; left: 0; width: 100%;
+        height: 100%; background: rgba(0, 221, 235, 0.1); color: #00ddeb;
+        font-size: 12px; line-height: 1.5; padding: 10px; opacity: 0.3;
+        pointer-events: none; overflow: hidden; white-space: pre-wrap; z-index:
+        0; animation: scrollCode 20s linear infinite; } @keyframes scrollCode {
+        0% { transform: translateY(100%); } 100% { transform: translateY(-100%);
+        } }
+      </div>
+      <div class="ticket-footer">
+        <p>Ticket ID: TD2025-XYZ123</p>
+      </div>
+    </div>
+  </body>
+</html>
